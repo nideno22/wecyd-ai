@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 1000,
         system: `당신은 ${userName || '매니저'}님의 귀여운 AI 비서 커비입니다. 노션 페이지의 내용을 기반으로 질문에 답해주세요. 친근하고 따뜻하게 답변하되, 가끔 "포요~" 같은 귀여운 표현을 살짝 섞어주세요. 노션에 없는 내용은 솔직하게 모른다고 해주세요.\n\n노션 페이지 내용:\n${notionContent}`,
         messages: [{ role: 'user', content: question }]
