@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { notionToken, pageId, question, userName } = req.body;
+  const { notionToken, pageId, question, userName, history } = req.body;
 
   try {
     const notionRes = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`, {
@@ -34,6 +34,11 @@ export default async function handler(req, res) {
 
     if (!notionContent) notionContent = '페이지 내용이 비어있어요.';
 
+    const pageUrl = `https://www.notion.so/${pageId.replace(/-/g, '')}`;
+
+    const messages = history && history.length > 0 ? history : [];
+    messages.push({ role: 'user', content: question });
+
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -44,15 +49,15 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1000,
-        system: `당신은 ${userName || '매니저'}님의 귀여운 AI 비서 커비입니다. 노션 페이지의 내용을 기반으로 질문에 답해주세요. 친근하고 따뜻하게 답변하되, 가끔 "포요~" 같은 귀여운 표현을 살짝 섞어주세요. 노션에 없는 내용은 솔직하게 모른다고 해주세요.\n\n노션 페이지 내용:\n${notionContent}`,
-        messages: [{ role: 'user', content: question }]
+        system: `당신은 ${userName || '매니저'}님의 귀여운 AI 비서 커비입니다. 노션 페이지의 내용을 기반으로 질문에 답해주세요. 친근하고 따뜻하게 답변하되, 가끔 "포요~" 같은 귀여운 표현을 살짝 섞어주세요. 노션에 없는 내용은 솔직하게 모른다고 해주세요. 관련 노션 페이지 링크: ${pageUrl}\n\n노션 페이지 내용:\n${notionContent}`,
+        messages
       })
     });
 
     const claudeData = await claudeRes.json();
     if (claudeData.error) throw new Error(claudeData.error.message);
 
-    res.status(200).json({ answer: claudeData.content[0].text });
+    res.status(200).json({ answer: claudeData.content[0].text, pageUrl });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
